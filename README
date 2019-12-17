@@ -1,0 +1,57 @@
+Goals
+-----
+
+Provide insight disruptions or aberrations in PostgreSQL connectivity from the
+client perspective.  Conditions we want to detect:
+
+1) New connections succeed, but are slow to run a simple query
+2) An existing connection is dropped
+3) New connections are denied or time out
+4) Database is paused
+5) Database is read-only (might be caused by a crash, ans subsequent recovery)
+
+Architecture
+------------
+
+Each health check is run as an independent worker, and a reload process signals
+the parent if the the `node` table is updated.
+
+    pgprobe postgresql://report@db1/pgprobe
+      ├─pgprobe-query  postgresql://report@db1/pgprobe virtdhm
+      ├─pgprobe-query  postgresql://report@db1/pgprobe virten
+      └─pgprobe-reload postgresql://report@db1/pgprobe 243063
+
+* The main process, `pgprobe` collects the set of hosts to monitor from
+   `node` table.
+* For each database and instance of `pgprobe-query` updates the
+  `response_log` table.
+* If the `node` table is updated, `pgprobe-reload` signals `pgprobe` to
+  restart it's workers.
+
+Initial Configuration
+---------------------
+
+To add a new monitoring host, create a partition of `response_log`
+
+    CREATE TABLE response_log_test PARTITION OF response_log FOR VALUES IN ('enlogin28');
+
+Give pgprobe access to it's own database by writing a password file as the
+user `postgres`:
+
+    ssh db3
+    echo '*:*:pgprobe:report:XXXXXX' >> .pgprobe
+    chmod 600 .pgprobe
+
+Monitoring a New Host
+---------------------
+
+Then add it to the table of hosts to be monitored
+
+  pgprobe=# INSERT INTO monitor_rules (name,url,active,category) VALUES
+              ('db4_query', 'postgresql://connectq:XXXXXX@db4-query/db42', 't', 'chem');
+
+Limitations
+-----------
+
+pgprobe does not handle the case where a connection remains valid, but the
+current transaction was aborted.
