@@ -14,7 +14,7 @@ Architecture
 ------------
 
 Each health check is run as an independent worker, and a reload process signals
-the parent if the the `node` table is updated.
+the parent if the `node` table is updated.
 
     pgprobe postgresql://report@db1/pgprobe
       ├─pgprobe-query  postgresql://report@db1/pgprobe virtdhm
@@ -31,9 +31,20 @@ the parent if the the `node` table is updated.
 Initial Configuration
 ---------------------
 
-To add a new monitoring host, create a partition of `response_log`
+Initialize database
 
-    CREATE TABLE response_log_test PARTITION OF response_log FOR VALUES IN ('enlogin28');
+    psql -f schema/roles.sql
+    psql -c 'CREATE DATABASE pgprobe OWNER pgprobe;'
+    psql -c 'ALTER USER pgprobe SUPERUSER;'
+    for f in schema/??-*.sql; do
+        psql -q -U pgprobe -f $f
+    done
+    psql -c 'ALTER USER pgprobe NOSUPERUSER;'
+
+Optionally add a partition for each monitored host
+
+    CREATE TABLE response_log_test PARTITION OF response_log FOR VALUES IN ('svc1');
+    CREATE TABLE response_log_test PARTITION OF response_log FOR VALUES IN ('svc2');
 
 Give pgprobe access to it's own database by writing a password file as the
 user `postgres`:
@@ -45,10 +56,8 @@ user `postgres`:
 Monitoring a New Host
 ---------------------
 
-Then add it to the table of hosts to be monitored
-
-  pgprobe=# INSERT INTO monitor_rules (name,url,active,category) VALUES
-              ('db4_query', 'postgresql://connectq:XXXXXX@db4-query/db42', 't', 'chem');
+  INSERT INTO probe_rules (name,url,active,category) VALUES
+      ('sidecomment', 'postgresql://webui@svc1.sidecomment.io/sidecomment', 't', 'www');
 
 Limitations
 -----------

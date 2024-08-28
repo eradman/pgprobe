@@ -11,6 +11,7 @@ function log {
 log "starting test database"
 url=$(pg_tmp)
 psql="psql -P footer=off -P linestyle=unicode --no-psqlrc -q -v ON_ERROR_STOP=1 $url"
+$psql -f schema/roles.sql
 $psql -At <<-SQL
 	SELECT setting || '/postgres.log' AS logfile
 	FROM pg_settings
@@ -18,7 +19,7 @@ $psql -At <<-SQL
 SQL
 
 log "loading schema"
-for sql in $(ls -d schema/*); do
+for sql in $(ls -d schema/0*); do
 	$psql -f $sql -o /dev/null
 done
 $psql <<-SQL
