@@ -2,7 +2,7 @@
 # Eric Radman, 2019
 
 trap 'printf "$0: exit code $? on line $LINENO\n"; kill $!; exit 1' ERR
-cd "$(dirname $0)/.."
+cd "$(dirname $0)"
 function log {
 	msg="$(date '+%H:%M:%S') $*"
 	printf "\e[7m${msg}\e[27m\n"
