@@ -1,14 +1,13 @@
-Goals
------
+PgProbe
+-------
 
-Provide insight disruptions or aberrations in PostgreSQL connectivity from the
-client perspective.  Conditions we want to detect:
+Verify PostgreSQL connectivity
 
-1) New connections succeed, but are slow to run a simple query
-2) An existing connection is dropped
-3) New connections are denied or time out
-4) Database is paused
-5) Database is read-only (might be caused by a crash, ans subsequent recovery)
+1. New connections succeed, but are slow to run a simple query
+2. An existing connection is dropped
+3. New connections are denied or time out
+4. Database is paused
+5. Database is read-only
 
 Architecture
 ------------
@@ -16,17 +15,12 @@ Architecture
 Each health check is run as an independent worker, and a reload process signals
 the parent if the `node` table is updated.
 
-    pgprobe postgresql://report@db1/pgprobe
-      ├─pgprobe-query  postgresql://report@db1/pgprobe virtdhm
-      ├─pgprobe-query  postgresql://report@db1/pgprobe virten
-      └─pgprobe-reload postgresql://report@db1/pgprobe 243063
-
-* The main process, `pgprobe` collects the set of hosts to monitor from
-   `node` table.
-* For each database and instance of `pgprobe-query` updates the
-  `response_log` table.
-* If the `node` table is updated, `pgprobe-reload` signals `pgprobe` to
-  restart it's workers.
+* The main process, `pgprobe` collects the set of hosts to monitor from `node`
+  table.
+* For each database and instance of `pgprobe-query` updates the `response_log`
+  table.
+* If the `node` table is updated, `pgprobe-reload` signals `pgprobe` to restart
+  it's workers.
 
 Initial Configuration
 ---------------------
@@ -56,7 +50,7 @@ user `postgres`:
 Monitoring a New Host
 ---------------------
 
-  INSERT INTO probe_rules (name,url,active,category) VALUES
+    INSERT INTO probe_rules (name,url,active,category) VALUES
       ('sidecomment', 'postgresql://webui@svc1.sidecomment.io/sidecomment', 't', 'www');
 
 Limitations
