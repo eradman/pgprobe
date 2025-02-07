@@ -51,7 +51,7 @@ psql <<SQL
 	ORDER BY event_time;
 SQL
 
-log "Deactive rules to trigger reload/abort"
+log "Deactivate rules to trigger reload/abort"
 sleep 4
 psql -c "UPDATE probe_rules SET active='f'"
 

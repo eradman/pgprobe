@@ -2,14 +2,14 @@
  * Eric Radman, 2019
  */
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <sys/time.h>
 
 #include <libpq-fe.h>
 
@@ -40,23 +40,22 @@ main(int argc, char *argv[]) {
 	bzero(&node, sizeof(Node));
 
 	if (argc != 3)
-		errx(1, "usage: pgprobe-query logdb_url node_name"); 
+		errx(1, "usage: pgprobe-query logdb_url node_name");
 
 	conn = PQconnectdb(argv[1]);
-	if(PQstatus(conn) == CONNECTION_BAD)
-	        errx(1, "Connection failed: %s", PQerrorMessage(conn));
+	if (PQstatus(conn) == CONNECTION_BAD)
+		errx(1, "Connection failed: %s", PQerrorMessage(conn));
 
 	paramValues[0] = argv[2];
 	paramLengths[0] = strlen(argv[2]);
 	paramFormats[0] = 0;
 
 	res = PQexecParams(conn,
-		"SELECT database_id, name, url, remain_idle, test_query "
-		"FROM probe_rules "
-		"WHERE name=$1::varchar", 1,
-		NULL, paramValues, paramLengths, paramFormats, 0
-	);
-	if(PQresultStatus(res) != PGRES_TUPLES_OK)
+	    "SELECT database_id, name, url, remain_idle, test_query "
+	    "FROM probe_rules "
+	    "WHERE name=$1::varchar",
+	    1, NULL, paramValues, paramLengths, paramFormats, 0);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		errx(1, "SELECT failed %s", PQerrorMessage(conn));
 
 	if (PQntuples(res) == 0)
@@ -76,10 +75,10 @@ main(int argc, char *argv[]) {
 	PQfinish(conn);
 
 	return 0;
-
 }
 
-int timedelta(struct timespec *tv_start, struct timespec *tv_end) {
+int
+timedelta(struct timespec *tv_start, struct timespec *tv_end) {
 	int start, end;
 
 	/* time in milliseconds */
@@ -89,7 +88,8 @@ int timedelta(struct timespec *tv_start, struct timespec *tv_end) {
 	return end - start;
 }
 
-int log_response(PGconn *probe_conn, Node *node) {
+int
+log_response(PGconn *probe_conn, Node *node) {
 	struct timespec tv_start, tv_end;
 	int ok;
 	char in_recovery[2];
@@ -115,13 +115,13 @@ int log_response(PGconn *probe_conn, Node *node) {
 	strlcpy(in_recovery, "f", 2);
 	error_message[0] = '\0';
 
-	for (step=0; step<3; step++) {
-		switch(step) {
+	for (step = 0; step < 3; step++) {
+		switch (step) {
 		case 0:
 			/* connect */
 			clock_gettime(CLOCK_MONOTONIC, &tv_start);
 			conn = PQconnectdb(node->url);
-			if(PQstatus(conn) == CONNECTION_BAD) {
+			if (PQstatus(conn) == CONNECTION_BAD) {
 				ok = 0;
 			}
 			clock_gettime(CLOCK_MONOTONIC, &tv_end);
@@ -129,12 +129,13 @@ int log_response(PGconn *probe_conn, Node *node) {
 
 			/* query, idle, query */
 			clock_gettime(CLOCK_MONOTONIC, &tv_start);
-			if (!ok) goto finish;
+			if (!ok)
+				goto finish;
 			break;
 
 		case 1:
 			res = PQexec(conn, "SELECT pg_is_in_recovery()");
-			if(PQresultStatus(res) != PGRES_TUPLES_OK) {
+			if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 				ok = 0;
 				goto finish;
 			}
@@ -159,7 +160,8 @@ finish:
 	/* error_string */
 	strlcpy(error_message, PQerrorMessage(conn), sizeof(error_message));
 	p = strchr(error_message, '\n');
-	if (p) *p = '\0';  /* drop subsequent lines of explanation */
+	if (p)
+		*p = '\0'; /* drop subsequent lines of explanation */
 	PQfinish(conn);
 
 	/* query timing */
@@ -167,7 +169,7 @@ finish:
 	query_time_ms = timedelta(&tv_start, &tv_end) - (total_sleep * 1000);
 
 	uint32_params[0] = htonl(node->id);
-	paramValues[0] = (char *)&uint32_params[0];
+	paramValues[0] = (char *) &uint32_params[0];
 	paramLengths[0] = sizeof(uint32_params[0]);
 	paramFormats[0] = 1;
 
@@ -176,12 +178,12 @@ finish:
 	paramFormats[1] = 0;
 
 	uint32_params[1] = htonl(conn_time_ms);
-	paramValues[2] = (char *)&uint32_params[1];
+	paramValues[2] = (char *) &uint32_params[1];
 	paramLengths[2] = sizeof(uint32_params[1]);
 	paramFormats[2] = 1;
 
 	uint32_params[2] = htonl(query_time_ms);
-	paramValues[3] = (char *)&uint32_params[2];
+	paramValues[3] = (char *) &uint32_params[2];
 	paramLengths[3] = sizeof(uint32_params[2]);
 	paramFormats[3] = 1;
 
@@ -198,13 +200,13 @@ finish:
 	paramFormats[6] = 0;
 
 	res = PQexecParams(probe_conn,
-		"INSERT INTO response_log                              "
-		"  (database_id, in_recovery, connect_time, query_time,"
-		"   error_message, hostname, check_step)               "
-		"VALUES                                                "
-		"  ($1::int, $2::bool, $3::int, $4::int, $5::varchar,  "
-		"   $6::varchar, $7::step)                             ", 7,
-		NULL, paramValues, paramLengths, paramFormats, 0);
+	    "INSERT INTO response_log                              "
+	    "  (database_id, in_recovery, connect_time, query_time,"
+	    "   error_message, hostname, check_step)               "
+	    "VALUES                                                "
+	    "  ($1::int, $2::bool, $3::int, $4::int, $5::varchar,  "
+	    "   $6::varchar, $7::step)                             ",
+	    7, NULL, paramValues, paramLengths, paramFormats, 0);
 	/* self-terminate if we were unable to record the result */
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		fprintf(stderr, "INSERT failed: %s", PQerrorMessage(probe_conn));

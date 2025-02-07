@@ -15,8 +15,7 @@
 /* pgprobe-reload */
 
 int
-main(int argc, char **argv)
-{
+main(int argc, char **argv) {
 	PGconn *conn;
 	PGresult *res;
 	PGnotify *notify;
@@ -24,7 +23,7 @@ main(int argc, char **argv)
 	int pid;
 
 	if (argc != 3)
-		errx(1, "usage: pgprobe-reload logdb_url pid"); 
+		errx(1, "usage: pgprobe-reload logdb_url pid");
 	pid = atoi(argv[2]);
 	conn = PQconnectdb(argv[1]);
 
@@ -39,8 +38,7 @@ main(int argc, char **argv)
 
 	/* Quit after four notifies are received; parent should re-launch */
 	nnotifies = 0;
-	while (nnotifies < 4)
-	{
+	while (nnotifies < 4) {
 		int sock;
 		fd_set input_mask;
 
@@ -59,8 +57,7 @@ main(int argc, char **argv)
 
 		if (PQconsumeInput(conn) == 0)
 			warnx("%s", PQerrorMessage(conn));
-		while ((notify = PQnotifies(conn)) != NULL)
-		{
+		while ((notify = PQnotifies(conn)) != NULL) {
 			kill(pid, RELOAD_SIG);
 			PQfreemem(notify);
 			nnotifies++;

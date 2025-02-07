@@ -10,4 +10,7 @@ all: ${PROGS}
 clean:
 	rm -f ${PROGS}
 
+format:
+	${CLANG_FORMAT} -i *.c *.h
+
 .PHONY: all clean
