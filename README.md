@@ -27,13 +27,9 @@ Initial Configuration
 
 Initialize database
 
-    psql -f schema/roles.sql
+    psql -c 'ALTER USER pgprobe LOGIN;'
     psql -c 'CREATE DATABASE pgprobe OWNER pgprobe;'
-    psql -c 'ALTER USER pgprobe SUPERUSER;'
-    for f in schema/??-*.sql; do
-        psql -q -U pgprobe -f $f
-    done
-    psql -c 'ALTER USER pgprobe NOSUPERUSER;'
+    psql -q -U pgprobe -f schema.sql
 
 Optionally add a partition for each monitored host
 
@@ -44,7 +40,7 @@ Give pgprobe access to it's own database by writing a password file as the
 user `postgres`:
 
     ssh db3
-    echo '*:*:pgprobe:report:XXXXXX' >> .pgprobe
+    echo '*:*:pgprobe:pgprobe:XXXXXX' >> .pgprobe
     chmod 600 .pgprobe
 
 Monitoring a New Host

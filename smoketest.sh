@@ -1,7 +1,7 @@
 #!/bin/sh
 # Eric Radman, 2019
 
-trap 'printf "$0: exit code $? on line $LINENO\n"; kill $!; exit 1' ERR
+trap 'printf "$0: exit code $? on line $LINENO\n"; exit 1' ERR
 cd "$(dirname $0)"
 function log {
 	msg="$(date '+%H:%M:%S') $*"
@@ -11,7 +11,6 @@ function log {
 log "starting test database"
 url=$(pg_tmp)
 alias psql="psql -P footer=off -P linestyle=unicode --no-psqlrc -q -v ON_ERROR_STOP=1 $url"
-psql -f schema/roles.sql
 psql -At <<-SQL
 	SELECT setting || '/postgres.log' AS logfile
 	FROM pg_settings
@@ -19,9 +18,7 @@ psql -At <<-SQL
 SQL
 
 log "loading schema"
-for sql in $(ls -d schema/0*); do
-	psql -f $sql -o /dev/null
-done
+psql -f schema.sql -o /dev/null
 psql <<-SQL
 	INSERT INTO probe_rules (name, url, remain_idle, active)
 	VALUES ('pg_tmp', '${url}&application_name=probe_test', 2, 't');
