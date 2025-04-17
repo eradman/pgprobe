@@ -83,7 +83,7 @@ reload:
 	if (node_count == 0)
 		errx(1, "pgprobe: no active nodes defined");
 
-	/* Allocate one more for our probeing process */
+	/* Allocate one more for the probe process */
 	nodes = malloc((node_count + 1) * sizeof(Node));
 	bzero(nodes, (node_count + 1) * sizeof(Node));
 
@@ -111,7 +111,7 @@ restart_children:
 				err(1, "fork");
 			if (nodes[n].pid == 0) {
 				snprintf(prog, sizeof(prog), "%s%s", self, "-query");
-				printf("%d probeing %s\n", getpid(), nodes[n].name);
+				printf("%d connect %s\n", getpid(), nodes[n].name);
 				execl(prog, "pgprobe-query", logdb_url, nodes[n].name, NULL);
 				err(1, "execl failed");
 			}
