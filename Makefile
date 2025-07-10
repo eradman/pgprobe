@@ -12,5 +12,9 @@ clean:
 
 format:
 	${CLANG_FORMAT} -i *.c *.h
+	shfmt -ci -sr -w -l .
+
+check:
+	@./smoke_test.sh
 
 .PHONY: all clean
